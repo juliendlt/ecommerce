@@ -43,111 +43,88 @@ npm run dev
 
 
 
-
-
-flowchart TD
-
-    User --> Order
-
-    Category --> Product
-
-    Product --> ProductImage
-    Product --> ProductVariant
-
-    Order --> OrderItem
-    Order --> Payment
-
-    OrderItem -. référence catalogue .-> Product
-
-
-```mermaid
 erDiagram
 
-    User ||--o{ Order : places
+  USER ||--o{ ORDER : places
 
-    Category ||--o{ Product : contains
-    Category ||--o{ Category : parent_of
+  CATEGORY ||--o{ PRODUCT : contains
 
-    Product ||--o{ ProductImage : has
-    Product ||--o{ ProductVariant : has
+  PRODUCT ||--o{ PRODUCT_VARIANT : has
+  PRODUCT ||--o{ PRODUCT_IMAGE : has
 
-    Order ||--o{ OrderItem : contains
-    Product ||--o{ OrderItem : ordered_as
+  ORDER ||--o{ ORDER_ITEM : contains
+  PRODUCT ||--o{ ORDER_ITEM : referenced_by
+  ORDER ||--|| PAYMENT : has
 
-    Order ||--|| Payment : payment
+  %% =========================
+  %% VARIANTS SYSTEM
+  %% =========================
 
-    User {
-        string id
-        string email
-        string password
-        string firstName
-        string lastName
-        string role
-    }
+  OPTION_TYPE ||--o{ OPTION_VALUE : defines
 
-    Category {
-        string id
-        string name
-        string slug
-        string parentId
-    }
+  PRODUCT_VARIANT ||--o{ PRODUCT_VARIANT_OPTION : includes
+  OPTION_VALUE ||--o{ PRODUCT_VARIANT_OPTION : used_in
 
-    Product {
-        string id
-        string name
-        string slug
-        decimal basePrice
-        boolean isActive
-        string categoryId
-    }
+  %% =========================
+  %% ENTITIES
+  %% =========================
 
-    ProductImage {
-        string id
-        string productId
-        string url
-        string alt
-        int position
-    }
+  USER {
+    string id
+    string email
+  }
 
-    ProductVariant {
-        string id
-        string productId
-        string type
-        string value
-        decimal priceOffset
-        int stock
-        boolean isAvailable
-        string colorHex
-        int position
-    }
+  PRODUCT {
+    string id
+    string name
+    decimal basePrice
+  }
 
-    Order {
-        string id
-        string userId
-        string status
-        decimal subtotal
-        decimal shippingCost
-        decimal total
-    }
+  PRODUCT_VARIANT {
+    string id
+    int stock
+    boolean isActive
+  }
 
-    OrderItem {
-        string id
-        string orderId
-        string productId
-        string productName
-        string productSlug
-        int quantity
-        decimal unitPrice
-        decimal total
-        json variantSnapshot
-    }
+  OPTION_TYPE {
+    string id
+    string name  "Taille, Couleur, Tissu"
+  }
 
-    Payment {
-        string id
-        string orderId
-        decimal amount
-        string currency
-        string status
-        string method
-    }
-```
+  OPTION_VALUE {
+    string id
+    string name  "S, M, L, Lin, Rouge"
+    boolean isAvailable
+    decimal priceOffset
+    int stock
+  }
+
+  PRODUCT_VARIANT_OPTION {
+    string id
+  }
+
+  ORDER {
+    string id
+    string status
+  }
+
+  ORDER_ITEM {
+    string id
+    int quantity
+    decimal unitPrice
+  }
+
+  PAYMENT {
+    string id
+    string status
+  }
+
+  CATEGORY {
+    string id
+    string name
+  }
+
+  PRODUCT_IMAGE {
+    string id
+    string url
+  }

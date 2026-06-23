@@ -1,7 +1,3 @@
-// ============================================================
-// PRISMA SCHEMA — E-Commerce (v3 simplifié)
-// ============================================================
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -41,7 +37,7 @@ enum Role {
 
 model Category {
   id          String     @id @default(cuid())
-  name        String     @unique
+  name        String
   slug        String     @unique
   description String?
   imageUrl    String?
@@ -55,22 +51,23 @@ model Category {
 }
 
 model Product {
-  id           String   @id @default(cuid())
-  name         String
-  slug         String   @unique
-  description  String?
-  basePrice    Decimal  @db.Decimal(10, 2)
-  isActive     Boolean  @default(true)
-  categoryId   String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  basePrice   Decimal  @db.Decimal(10,2)
+  isActive    Boolean  @default(true)
 
-  category   Category         @relation(fields: [categoryId], references: [id])
-  images     ProductImage[]
-  variants   ProductVariant[]
-  orderItems OrderItem[]
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
 
-  @@map("products")
+  images      ProductImage[]
+  variants    ProductVariant[]
+  
+  orderItems  OrderItem[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model ProductImage {
@@ -86,31 +83,69 @@ model ProductImage {
 }
 
 // ============================================================
-// VARIANTES
+// VARIANTS SYSTEM
 // ============================================================
 
+model OptionType {
+  id        String   @id @default(cuid())
+  name      String   @unique // Taille, Couleur, Tissu
+  isActive  Boolean  @default(true)
+
+  values    OptionValue[]
+
+  @@map("option_types")
+}
+
+model OptionValue {
+  id            String   @id @default(cuid())
+  optionTypeId  String
+
+  name          String
+  priceOffset   Decimal  @default(0) @db.Decimal(10,2)
+
+  stock         Int      @default(0)
+  isAvailable   Boolean  @default(true)
+
+  metadata      Json?
+
+  optionType OptionType @relation(fields: [optionTypeId], references: [id], onDelete: Cascade)
+
+  // ✅ AJOUT OBLIGATOIRE
+  productVariantOptions ProductVariantOption[]
+
+  @@unique([optionTypeId, name])
+  @@map("option_values")
+}
+
 model ProductVariant {
-  id          String   @id @default(cuid())
-  productId   String
+  id        String @id @default(cuid())
+  productId String
 
-  type        String   // Couleur, Taille, Matière...
-  value       String   // Rouge, M, Lin...
+  sku       String?
+  stock     Int     @default(0)
+  isActive  Boolean @default(true)
 
-  priceOffset Decimal  @default(0) @db.Decimal(10, 2)
-  stock       Int      @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  isAvailable Boolean  @default(true)
-  colorHex    String?
-  position    Int      @default(0)
+  options   ProductVariantOption[]
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([productId, type, value])
   @@map("product_variants")
 }
 
+model ProductVariantOption {
+  id            String @id @default(cuid())
+  variantId     String
+  optionValueId String
+
+  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionValue OptionValue    @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+
+  @@unique([variantId, optionValueId])
+  @@map("product_variant_options")
+}
+
 // ============================================================
-// COMMANDES
+// ORDERS
 // ============================================================
 
 model Order {
@@ -118,22 +153,20 @@ model Order {
   userId       String
   status       OrderStatus @default(PENDING)
 
-  subtotal     Decimal     @db.Decimal(10, 2)
-  shippingCost Decimal     @default(0) @db.Decimal(10, 2)
-  total        Decimal     @db.Decimal(10, 2)
+  subtotal     Decimal     @db.Decimal(10,2)
+  shippingCost Decimal     @default(0) @db.Decimal(10,2)
+  total        Decimal     @db.Decimal(10,2)
 
   shipAddress  String?
   shipCity     String?
   shipPostal   String?
   shipCountry  String?
 
-  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  user    User        @relation(fields: [userId], references: [id])
-  items   OrderItem[]
+  user   User @relation(fields: [userId], references: [id])
+  items  OrderItem[]
   payment Payment?
 
   @@map("orders")
@@ -150,27 +183,17 @@ enum OrderStatus {
 }
 
 model OrderItem {
-  id        String  @id @default(cuid())
+  id        String @id @default(cuid())
   orderId   String
-
-  // Référence catalogue
   productId String
 
-  // Snapshot produit
   productName String
   productSlug String
 
   quantity  Int
+  unitPrice Decimal @db.Decimal(10,2)
+  total     Decimal @db.Decimal(10,2)
 
-  // Prix capturé au moment de l'achat
-  unitPrice Decimal @db.Decimal(10, 2)
-  total     Decimal @db.Decimal(10, 2)
-
-  // Exemple :
-  // [
-  //   { "type": "Couleur", "value": "Rouge", "priceOffset": 2 },
-  //   { "type": "Taille", "value": "M", "priceOffset": 0 }
-  // ]
   variantSnapshot Json?
 
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
@@ -180,24 +203,24 @@ model OrderItem {
 }
 
 // ============================================================
-// PAIEMENTS
+// PAYMENTS
 // ============================================================
 
 model Payment {
   id              String        @id @default(cuid())
   orderId         String        @unique
 
-  stripePaymentId String?       @unique
-  stripeSessionId String?       @unique
+  stripePaymentId String? @unique
+  stripeSessionId  String? @unique
 
-  amount          Decimal       @db.Decimal(10, 2)
-  currency        String        @default("eur")
+  amount          Decimal @db.Decimal(10,2)
+  currency        String  @default("eur")
 
   status          PaymentStatus @default(PENDING)
   method          String?
 
   paidAt          DateTime?
-  createdAt       DateTime      @default(now())
+  createdAt       DateTime @default(now())
 
   order Order @relation(fields: [orderId], references: [id])
 
