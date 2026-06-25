@@ -1,5 +1,10 @@
 import express from "express";
+import helmet from "helmet";
 import cors from "cors";
+import {apiLimiter} from "./middleware/rateLimit.middleware";
+import {notFoundMiddleware} from "./middleware/notFound.middleware";
+import {errorMiddleware} from "./middleware/error.middleware";
+import {securityConfig} from "./config/security";
 
 import authRoutes from "./auth/auth.routes";
 import productRoutes from "./products/product.routes";
@@ -12,14 +17,25 @@ import userRoutes from "./users/user.routes";
 
 import { stripeWebhook } from "./payments/payment.webhook";
 
+const app =express();
 
-const app = express();
+// sécurité headers
+app.use(helmet());
 
-app.use(cors());
+// cors
+app.use(cors(securityConfig.cors));
+
+
+
+// limitation API
+app.use(apiLimiter);
+
+
+// body parser
 app.post("/api/payments/webhook", express.raw({ type: "application/json" }), stripeWebhook);
 app.use(express.json());
 
-
+//Route 
 app.use("/api/payments", paymentRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
@@ -28,5 +44,15 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/images", imageRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/users", userRoutes);
+
+
+// routes inconnues
+app.use(notFoundMiddleware);
+
+
+
+// erreurs globales
+app.use(errorMiddleware);
+
 
 export default app;

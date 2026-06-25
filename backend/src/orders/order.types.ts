@@ -1,3 +1,5 @@
+import { OrderStatus } from "@prisma/client";
+
 export type CreateOrderInput = {
     items: {
         productId: string;
@@ -14,4 +16,8 @@ export type CreateOrderInput = {
         postal: string;
         country: string;
     }
+};
+
+export type UpdateOrderStatusInput = {
+    status: OrderStatus;
 };

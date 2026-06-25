@@ -1,5 +1,10 @@
 import { z } from "zod";
+import { OrderStatus } from "@prisma/client";
 
+export const updateOrderStatusSchema = z.object({
+    status:
+        z.nativeEnum(OrderStatus)
+});
 
 export const createOrderSchema =
     z.object({
@@ -13,7 +18,8 @@ export const createOrderSchema =
                     unitPrice: z.number().positive(),
                     optionsSnapshot: z.record(z.string()).optional()
                 })
-            ).min(1),
+            )
+                .min(1),
 
         shipping:
             z.object({
@@ -21,5 +27,6 @@ export const createOrderSchema =
                 city: z.string(),
                 postal: z.string(),
                 country: z.string()
-            }).optional()
+            })
+                .optional()
     });
