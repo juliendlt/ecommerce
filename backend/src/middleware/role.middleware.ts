@@ -1,26 +1,17 @@
-import {
-Response,
-NextFunction
-} from "express";
-
-import {
-AuthRequest
-} from "./auth.middleware";
+import { Response, NextFunction } from "express";
+import { AuthRequest } from "./auth.middleware";
 
 
 export function adminOnly(
-req:AuthRequest,
-res:Response,
-next:NextFunction
-){
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+) {
 
-if(req.user.role !== "ADMIN"){
- return res.status(403).json({
-  message:"FORBIDDEN"
- });
-}
+    if (req.user.role !== "ADMIN") {
+        return res.status(403).json({ message: "FORBIDDEN" });
+    }
 
-
-next();
+    next();
 
 }

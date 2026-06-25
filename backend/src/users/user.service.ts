@@ -188,7 +188,7 @@ throw new Error(
 
 
 
-const passwordHash =
+const password =
 await hashPassword(
 newPassword
 );
@@ -206,7 +206,7 @@ id:userId
 
 data:{
 
-passwordHash
+password
 
 }
 

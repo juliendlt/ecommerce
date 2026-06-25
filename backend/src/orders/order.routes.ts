@@ -1,31 +1,11 @@
-import {Router}
-from "express";
+import { Router } from "express";
+import { createOrderController } from "./order.controller";
+import { authMiddleware } from "../middleware/auth.middleware";
 
 
-import {
-createOrderController
-}
-from "./order.controller";
+const router = Router();
 
-
-import {
-authMiddleware
-}
-from "../middleware/auth.middleware";
-
-
-
-const router =
-Router();
-
-
-
-router.post(
-"/",
-authMiddleware,
-createOrderController
-);
-
-
+//PUBLIC 
+router.post("/", authMiddleware, createOrderController);
 
 export default router;

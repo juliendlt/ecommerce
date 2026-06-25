@@ -1,68 +1,16 @@
-import {Router}
-from "express";
+import { Router } from "express";
+import { createImage, getImages, updateImage, deleteImage } from "./image.controller";
+import { authMiddleware } from "../middleware/auth.middleware";
+import { adminOnly } from "../middleware/role.middleware";
 
+const router = Router();
 
-import {
+//PUBLIC
+router.get("/product/:productId", getImages);
 
-createImage,
-getImages,
-updateImage,
-deleteImage
-
-}
-from "./image.controller";
-
-
-import {
-authMiddleware
-}
-from "../middleware/auth.middleware";
-
-
-import {
-adminOnly
-}
-from "../middleware/role.middleware";
-
-
-
-const router =
-Router();
-
-
-
-router.get(
-"/product/:productId",
-getImages
-);
-
-
-
-router.post(
-"/",
-authMiddleware,
-adminOnly,
-createImage
-);
-
-
-
-router.put(
-"/:id",
-authMiddleware,
-adminOnly,
-updateImage
-);
-
-
-
-router.delete(
-"/:id",
-authMiddleware,
-adminOnly,
-deleteImage
-);
-
-
+//ADMIN
+router.post("/", authMiddleware, adminOnly, createImage);
+router.put("/:id", authMiddleware, adminOnly, updateImage);
+router.delete("/:id", authMiddleware, adminOnly, deleteImage);
 
 export default router;

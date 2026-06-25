@@ -12,12 +12,12 @@ datasource db {
 // ============================================================
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String @id @default(cuid())
+  email     String @unique
   password  String
   firstName String
   lastName  String
-  role      Role     @default(CUSTOMER)
+  role      Role   @default(CUSTOMER)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -51,16 +51,16 @@ model Category {
 // ============================================================
 
 model Product {
-  id               String   @id @default(cuid())
-  slug             String   @unique
+  id               String  @id @default(cuid())
+  slug             String  @unique
   name             String
   shortDescription String?
   description      String?
-  basePrice        Decimal  @db.Decimal(10, 2)
-  isActive         Boolean  @default(true)
+  basePrice        Decimal @db.Decimal(10, 2)
+  isActive         Boolean @default(true)
 
   categoryId String
-  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id])
 
   images       ProductImage[]
   optionGroups ProductOptionGroup[]
@@ -77,7 +77,6 @@ model Product {
 // ============================================================
 
 model ProductImage {
-
   id String @id @default(cuid())
 
   productId String
@@ -88,13 +87,11 @@ model ProductImage {
 
   position Int
 
-
   // Nouvelle relation :
   // une image peut être associée à une option
   optionValueId String?
-  product Product @relation(fields:[productId], references:[id], onDelete: Cascade)
-  optionValue OptionValue? @relation(fields:[optionValueId], references:[id])
-
+  product       Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionValue   OptionValue? @relation(fields: [optionValueId], references: [id])
 }
 
 // ============================================================
@@ -105,15 +102,15 @@ model ProductImage {
 // Passer isAvailable = false rend la valeur indisponible sur TOUS les produits qui l'utilisent
 model OptionValue {
   id          String  @id @default(cuid())
-  label       String  // ex: "Liberty fleurs", "Wax bleu", "Lin naturel"
-  type        String  // ex: "tissu", "couleur", "finition" — pour filtrer / afficher proprement
-  priceOffSet Decimal  @db.Decimal(10, 2)
+  label       String // ex: "Liberty fleurs", "Wax bleu", "Lin naturel"
+  type        String // ex: "tissu", "couleur", "finition" — pour filtrer / afficher proprement
+  priceOffSet Decimal @db.Decimal(10, 2)
   isAvailable Boolean @default(true)
 
   // Groupes de produits qui utilisent cette valeur
   groups ProductOptionGroup[]
   images ProductImage[]
-  
+
   @@map("option_values")
 }
 
@@ -205,8 +202,8 @@ model Payment {
   stripePaymentId String? @unique
   stripeSessionId String? @unique
 
-  amount   Decimal @db.Decimal(10, 2)
-  currency String  @default("eur")
+  amount   Decimal       @db.Decimal(10, 2)
+  currency String        @default("eur")
   status   PaymentStatus @default(PENDING)
   method   String?
 

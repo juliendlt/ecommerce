@@ -1,5 +1,3 @@
 export type CreatePaymentInput = {
-
- orderId:string;
-
+    orderId: string;
 };
