@@ -77,15 +77,24 @@ model Product {
 // ============================================================
 
 model ProductImage {
-  id        String  @id @default(cuid())
+
+  id String @id @default(cuid())
+
   productId String
-  url       String
-  alt       String?
-  position  Int     @default(0)
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url String
 
-  @@map("product_images")
+  alt String?
+
+  position Int
+
+
+  // Nouvelle relation :
+  // une image peut être associée à une option
+  optionValueId String?
+  product Product @relation(fields:[productId], references:[id], onDelete: Cascade)
+  optionValue OptionValue? @relation(fields:[optionValueId], references:[id])
+
 }
 
 // ============================================================
@@ -103,7 +112,8 @@ model OptionValue {
 
   // Groupes de produits qui utilisent cette valeur
   groups ProductOptionGroup[]
-
+  images ProductImage[]
+  
   @@map("option_values")
 }
 
