@@ -2,20 +2,17 @@ import { prisma } from "../lib/prisma";
 import { hashPassword, comparePassword } from "../utils/password";
 import { generateToken } from "../lib/jwt";
 
-
 export async function register(data: {
     email: string;
     password: string;
     firstName: string;
     lastName: string;
 }) {
-
     const existing = await prisma.user.findUnique({
         where: {
-            email: data.email
-        }
+            email: data.email,
+        },
     });
-
 
     if (existing) {
         throw new Error("EMAIL_ALREADY_EXISTS");
@@ -28,7 +25,7 @@ export async function register(data: {
             password,
             firstName: data.firstName,
             lastName: data.lastName,
-        }
+        },
     });
 
     const token = generateToken({ id: user.id, role: user.role });
@@ -39,21 +36,17 @@ export async function register(data: {
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
-            role: user.role
+            role: user.role,
         },
-        token
+        token,
     };
 }
 
-
-
-export async function login(
-    email: string,
-    password: string
-) {
-
+export async function login(email: string, password: string) {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
+        //Ajout d'une vérification fausse pour avoir le meme temps de réponse
+        await comparePassword(password, "xxxxxxxxxx");
         throw new Error("INVALID_LOGIN");
     }
 
@@ -64,13 +57,12 @@ export async function login(
 
     const token = generateToken({ id: user.id, role: user.role });
 
-
     return {
         user: {
             id: user.id,
             email: user.email,
-            role: user.role
+            role: user.role,
         },
-        token
+        token,
     };
 }

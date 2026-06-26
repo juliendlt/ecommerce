@@ -1,10 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { CreateImageInput, UpdateImageInput } from "./image.types";
 
-
-export async function createImage(
-    data: CreateImageInput
-) {
+export async function createImage(data: CreateImageInput) {
     return prisma.productImage.create({
         data: {
             url: data.url,
@@ -12,50 +9,38 @@ export async function createImage(
             position: data.position,
             product: {
                 connect: {
-                    id: data.productId
-                }
+                    id: data.productId,
+                },
             },
-            optionValue:
-                data.optionValueId ?
-                    {
-                        connect: {
-                            id: data.optionValueId
-                        }
-                    }
-                    :
-                    undefined
-        }
+            optionValue: data.optionValueId
+                ? {
+                      connect: {
+                          id: data.optionValueId,
+                      },
+                  }
+                : undefined,
+        },
     });
-
 }
 
-export async function getProductImages(
-    productId: string
-) {
+export async function getProductImages(productId: string) {
     return prisma.productImage.findMany({
         where: {
-            productId
+            productId,
         },
         include: {
-            optionValue: true
+            optionValue: true,
         },
         orderBy: {
-            position: "asc"
-        }
+            position: "asc",
+        },
     });
-
 }
 
-export async function updateImage(
-    id: string,
-    data: UpdateImageInput
-) {
+export async function updateImage(id: string, data: UpdateImageInput) {
     return prisma.productImage.update({ where: { id }, data });
 }
 
-
-export async function deleteImage(
-    id: string
-) {
+export async function deleteImage(id: string) {
     return prisma.productImage.delete({ where: { id } });
 }

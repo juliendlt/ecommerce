@@ -15,7 +15,7 @@ export type CreateOrderInput = {
         city: string;
         postal: string;
         country: string;
-    }
+    };
 };
 
 export type UpdateOrderStatusInput = {

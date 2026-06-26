@@ -4,8 +4,6 @@ export type UpdateUserInput = {
     email?: string;
 };
 
-
-
 export type UpdatePasswordInput = {
     currentPassword: string;
     newPassword: string;

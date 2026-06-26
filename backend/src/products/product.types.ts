@@ -7,5 +7,4 @@ export type CreateProductInput = {
     categoryId: string;
 };
 
-
-export type UpdateProductInput = Partial<CreateProductInput> & { isActive?: boolean; };
+export type UpdateProductInput = Partial<CreateProductInput> & { isActive?: boolean };

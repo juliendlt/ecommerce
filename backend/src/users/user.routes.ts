@@ -2,7 +2,6 @@ import { Router } from "express";
 import { getMe, updateMe, updateMyPassword } from "./user.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 
-
 const router = Router();
 
 //Public

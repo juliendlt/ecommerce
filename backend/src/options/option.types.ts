@@ -4,8 +4,6 @@ export type CreateOptionValueInput = {
     priceOffSet: number;
 };
 
-
-
 export type UpdateOptionValueInput = {
     label?: string;
     type?: string;

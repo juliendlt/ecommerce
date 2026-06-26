@@ -3,7 +3,6 @@ import { createOption, getOptions, updateOption, deleteOption } from "./option.c
 import { authMiddleware } from "../middleware/auth.middleware";
 import { adminOnly } from "../middleware/role.middleware";
 
-
 const router = Router();
 
 // public

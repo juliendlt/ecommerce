@@ -1,10 +1,7 @@
 import { prisma } from "../lib/prisma";
 import { CreateProductInput, UpdateProductInput } from "./product.types";
 
-
-export async function createProduct(
-    data: CreateProductInput
-) {
+export async function createProduct(data: CreateProductInput) {
     return prisma.product.create({
         data: {
             name: data.name,
@@ -14,49 +11,45 @@ export async function createProduct(
             basePrice: data.basePrice,
             category: {
                 connect: {
-                    id: data.categoryId
-                }
-            }
-        }
+                    id: data.categoryId,
+                },
+            },
+        },
     });
 }
 
 export async function getProducts() {
     return prisma.product.findMany({
         where: {
-            isActive: true
+            isActive: true,
         },
         include: {
             images: true,
             category: true,
             optionGroups: {
                 include: {
-                    values: true
-                }
-            }
-        }
+                    values: true,
+                },
+            },
+        },
     });
 }
 
-
-export async function getProductBySlug(
-    slug: string
-) {
-    const product =
-        await prisma.product.findUnique({
-            where: {
-                slug
+export async function getProductBySlug(slug: string) {
+    const product = await prisma.product.findUnique({
+        where: {
+            slug,
+        },
+        include: {
+            images: true,
+            category: true,
+            optionGroups: {
+                include: {
+                    values: true,
+                },
             },
-            include: {
-                images: true,
-                category: true,
-                optionGroups: {
-                    include: {
-                        values: true
-                    }
-                }
-            }
-        });
+        },
+    });
 
     if (!product) {
         throw new Error("PRODUCT_NOT_FOUND");
@@ -65,31 +58,22 @@ export async function getProductBySlug(
     return product;
 }
 
-
-export async function updateProduct(
-    id: string,
-    data: UpdateProductInput
-) {
+export async function updateProduct(id: string, data: UpdateProductInput) {
     return prisma.product.update({
         where: {
-            id
+            id,
         },
-        data
+        data,
     });
 }
 
-
-
-
-export async function disableProduct(
-    id: string
-) {
+export async function disableProduct(id: string) {
     return prisma.product.update({
         where: {
-            id
+            id,
         },
         data: {
-            isActive: false
-        }
+            isActive: false,
+        },
     });
 }

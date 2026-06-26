@@ -1,5 +1,11 @@
 import { Router } from "express";
-import { createCategory, getCategories, getCategory, updateCategory, deleteCategory } from "./category.controller";
+import {
+    createCategory,
+    getCategories,
+    getCategory,
+    updateCategory,
+    deleteCategory,
+} from "./category.controller";
 import { authMiddleware } from "../middleware/auth.middleware";
 import { adminOnly } from "../middleware/role.middleware";
 

@@ -2,11 +2,7 @@ import { Request, Response } from "express";
 import * as service from "./image.service";
 import { createImageSchema, updateImageSchema } from "./image.validation";
 
-
-export async function createImage(
-    req: Request,
-    res: Response
-) {
+export async function createImage(req: Request, res: Response) {
     try {
         const data = createImageSchema.parse(req.body);
         const image = await service.createImage(data);
@@ -16,21 +12,12 @@ export async function createImage(
     }
 }
 
-
-export async function getImages(
-    req: Request,
-    res: Response
-) {
+export async function getImages(req: Request, res: Response) {
     const images = await service.getProductImages(req.params.productId);
     res.json(images);
-
 }
 
-
-export async function updateImage(
-    req: Request,
-    res: Response
-) {
+export async function updateImage(req: Request, res: Response) {
     try {
         const data = updateImageSchema.parse(req.body);
         const image = await service.updateImage(req.params.id, data);
@@ -40,11 +27,7 @@ export async function updateImage(
     }
 }
 
-
-export async function deleteImage(
-    req: Request,
-    res: Response
-) {
+export async function deleteImage(req: Request, res: Response) {
     await service.deleteImage(req.params.id);
     res.json({ message: "IMAGE_DELETED" });
 }

@@ -1,30 +1,23 @@
 import { prisma } from "../lib/prisma";
 import { CreateOrderInput, UpdateOrderStatusInput } from "./order.types";
 
-
-export async function createOrder(
-    userId: string,
-    data: CreateOrderInput
-) {
+export async function createOrder(userId: string, data: CreateOrderInput) {
     let subtotal = 0;
     const items = [];
 
-    for (
-        const item of data.items
-    ) {
-        const product =
-            await prisma.product.findUnique({
-                where: {
-                    id: item.productId
+    for (const item of data.items) {
+        const product = await prisma.product.findUnique({
+            where: {
+                id: item.productId,
+            },
+            include: {
+                optionGroups: {
+                    include: {
+                        values: true,
+                    },
                 },
-                include: {
-                    optionGroups: {
-                        include: {
-                            values: true
-                        }
-                    }
-                }
-            });
+            },
+        });
 
         if (!product) {
             throw new Error("PRODUCT_NOT_FOUND");
@@ -33,28 +26,16 @@ export async function createOrder(
         let price = Number(product.basePrice);
 
         if (item.optionsSnapshot) {
-            for (
-                const value
-                of Object.values(
-                    item.optionsSnapshot
-                )
-            ) {
-                const option =
-                    product.optionGroups
-                        .flatMap(
-                            group => group.values
-                        )
-                        .find(
-                            v => v.label === value
-                        );
+            for (const value of Object.values(item.optionsSnapshot)) {
+                const option = product.optionGroups
+                    .flatMap((group) => group.values)
+                    .find((v) => v.label === value);
 
                 if (option) {
                     price += Number(option.priceOffSet);
                 }
             }
         }
-
-
 
         const total = price * item.quantity;
         subtotal += total;
@@ -65,7 +46,7 @@ export async function createOrder(
             quantity: item.quantity,
             unitPrice: price,
             total,
-            optionsSnapshot: item.optionsSnapshot
+            optionsSnapshot: item.optionsSnapshot,
         });
     }
 
@@ -73,179 +54,97 @@ export async function createOrder(
         data: {
             user: {
                 connect: {
-                    id: userId
-                }
+                    id: userId,
+                },
             },
             subtotal,
             shippingCost: 0,
             total: subtotal,
             items: {
-                create: items
-            }
+                create: items,
+            },
         },
 
         include: {
-            items: true
-        }
+            items: true,
+        },
     });
 }
 
-
-
-
-
-
-export async function getUserOrders(
-    userId: string
-) {
-
-
+export async function getUserOrders(userId: string) {
     return prisma.order.findMany({
-
         where: {
-            userId
+            userId,
         },
 
-
         include: {
-
             items: true,
 
-            payment: true
-
+            payment: true,
         },
 
-
         orderBy: {
-
-            createdAt: "desc"
-
-        }
-
+            createdAt: "desc",
+        },
     });
-
 }
 
+export async function getOrderById(orderId: string, userId: string) {
+    const order = await prisma.order.findFirst({
+        where: {
+            id: orderId,
 
-
-
-
-export async function getOrderById(
-    orderId: string,
-    userId: string
-) {
-
-
-    const order =
-        await prisma.order.findFirst({
-
-            where: {
-
-                id: orderId,
-
-                userId
-
-            },
-
-
-            include: {
-
-                items: true,
-
-                payment: true
-
-            }
-
-        });
-
-
-
-    if (!order) {
-
-        throw new Error(
-            "ORDER_NOT_FOUND"
-        );
-
-    }
-
-
-
-    return order;
-
-}
-
-
-
-
-
-
-
-export async function getAllOrders() {
-
-
-    return prisma.order.findMany({
+            userId,
+        },
 
         include: {
+            items: true,
 
+            payment: true,
+        },
+    });
+
+    if (!order) {
+        throw new Error("ORDER_NOT_FOUND");
+    }
+
+    return order;
+}
+
+export async function getAllOrders() {
+    return prisma.order.findMany({
+        include: {
             user: {
-
                 select: {
-
                     id: true,
 
                     email: true,
 
                     firstName: true,
 
-                    lastName: true
-
-                }
-
+                    lastName: true,
+                },
             },
-
 
             items: true,
 
-            payment: true
-
+            payment: true,
         },
-
 
         orderBy: {
-
-            createdAt: "desc"
-
-        }
-
+            createdAt: "desc",
+        },
     });
-
 }
 
-
-
-
-
-
-
-export async function updateOrderStatus(
-    id: string,
-    data: UpdateOrderStatusInput
-) {
-
-
+export async function updateOrderStatus(id: string, data: UpdateOrderStatusInput) {
     return prisma.order.update({
-
         where: {
-            id
+            id,
         },
 
-
         data: {
-
-            status: data.status
-
-        }
-
+            status: data.status,
+        },
     });
-
 }

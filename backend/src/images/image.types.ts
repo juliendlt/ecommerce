@@ -6,7 +6,6 @@ export type CreateImageInput = {
     optionValueId?: string;
 };
 
-
 export type UpdateImageInput = {
     url?: string;
     alt?: string;
