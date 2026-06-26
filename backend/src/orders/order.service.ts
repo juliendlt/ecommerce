@@ -7,14 +7,10 @@ export async function createOrder(userId: string, data: CreateOrderInput) {
 
     for (const item of data.items) {
         const product = await prisma.product.findUnique({
-            where: {
-                id: item.productId,
-            },
+            where: { id: item.productId },
             include: {
                 optionGroups: {
-                    include: {
-                        values: true,
-                    },
+                    include: { values: true },
                 },
             },
         });
@@ -53,18 +49,21 @@ export async function createOrder(userId: string, data: CreateOrderInput) {
     return prisma.order.create({
         data: {
             user: {
-                connect: {
-                    id: userId,
-                },
+                connect: { id: userId },
             },
             subtotal,
             shippingCost: 0,
             total: subtotal,
+            ...(data.shipping && {
+                shipAddress: data.shipping.address,
+                shipCity: data.shipping.city,
+                shipPostal: data.shipping.postal,
+                shipCountry: data.shipping.country,
+            }),
             items: {
                 create: items,
             },
         },
-
         include: {
             items: true,
         },
@@ -73,35 +72,16 @@ export async function createOrder(userId: string, data: CreateOrderInput) {
 
 export async function getUserOrders(userId: string) {
     return prisma.order.findMany({
-        where: {
-            userId,
-        },
-
-        include: {
-            items: true,
-
-            payment: true,
-        },
-
-        orderBy: {
-            createdAt: "desc",
-        },
+        where: { userId },
+        include: { items: true, payment: true },
+        orderBy: { createdAt: "desc" },
     });
 }
 
 export async function getOrderById(orderId: string, userId: string) {
     const order = await prisma.order.findFirst({
-        where: {
-            id: orderId,
-
-            userId,
-        },
-
-        include: {
-            items: true,
-
-            payment: true,
-        },
+        where: { id: orderId, userId },
+        include: { items: true, payment: true },
     });
 
     if (!order) {
@@ -115,36 +95,18 @@ export async function getAllOrders() {
     return prisma.order.findMany({
         include: {
             user: {
-                select: {
-                    id: true,
-
-                    email: true,
-
-                    firstName: true,
-
-                    lastName: true,
-                },
+                select: { id: true, email: true, firstName: true, lastName: true },
             },
-
             items: true,
-
             payment: true,
         },
-
-        orderBy: {
-            createdAt: "desc",
-        },
+        orderBy: { createdAt: "desc" },
     });
 }
 
 export async function updateOrderStatus(id: string, data: UpdateOrderStatusInput) {
     return prisma.order.update({
-        where: {
-            id,
-        },
-
-        data: {
-            status: data.status,
-        },
+        where: { id },
+        data: { status: data.status },
     });
 }
