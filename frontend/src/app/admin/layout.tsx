@@ -65,26 +65,72 @@ const NAV = [
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  // ── 1. Attendre que Zustand soit hydraté depuis localStorage ──
+  const [mounted, setMounted] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
   const { user, logout } = useAuthStore()
   const router = useRouter()
   const pathname = usePathname()
-  const [ready, setReady] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  // Monter uniquement côté client (après hydratation)
   useEffect(() => {
-    if (!user) { router.push('/compte'); return }
-    if (user.role !== 'ADMIN') { router.push('/'); return }
-    setReady(true)
-  }, [user, router])
+    setMounted(true)
+  }, [])
 
-  if (!ready) {
+  // Guard : ne s'exécute qu'une fois monté
+  useEffect(() => {
+    if (!mounted) return
+    if (!user) {
+      router.push('/compte')
+      return
+    }
+    if (user.role !== 'ADMIN') {
+      router.push('/')
+    }
+  }, [mounted, user, router])
+
+  // ── 2. Tant que pas monté : écran neutre (pas de redirect prématuré) ──
+  if (!mounted) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Vérification des droits…</p>
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: '50%',
+            border: '2px solid var(--border)',
+            borderTopColor: 'var(--gold)',
+            animation: 'spin 0.8s linear infinite',
+            margin: '0 auto 1rem',
+          }} />
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Chargement…</p>
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }
 
+  // ── 3. Monté mais pas encore redirigé (user null ou pas ADMIN) ──
+  if (!user || user.role !== 'ADMIN') {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Redirection…</p>
+      </div>
+    )
+  }
+
+  // ── 4. Admin authentifié : afficher le layout ──
   const isActive = (href: string) =>
     href === '/admin' ? pathname === '/admin' : pathname.startsWith(href)
 
@@ -92,92 +138,95 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <>
       <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
 
+        {/* Overlay mobile */}
+        {sidebarOpen && (
+          <div
+            onClick={() => setSidebarOpen(false)}
+            style={{
+              position: 'fixed', inset: 0,
+              background: 'rgba(0,0,0,0.6)',
+              zIndex: 40,
+            }}
+          />
+        )}
+
         {/* Sidebar */}
-        <>
-          {/* Overlay mobile */}
-          {sidebarOpen && (
-            <div
-              onClick={() => setSidebarOpen(false)}
-              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 40 }}
-            />
-          )}
-
-          <aside style={{
-            position: 'fixed', top: 0, left: 0, bottom: 0,
-            width: 240,
-            background: 'var(--bg-card)',
-            borderRight: '1px solid var(--border)',
-            display: 'flex', flexDirection: 'column',
-            zIndex: 50,
-            transform: sidebarOpen ? 'translateX(0)' : undefined,
-            transition: 'transform 250ms ease',
-          }}
-            className="admin-sidebar"
-          >
-            {/* Logo */}
-            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
-              <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
-                  <circle cx="14" cy="14" r="13" stroke="var(--gold)" strokeWidth="1.2"/>
-                  <path d="M7 14c2-4 5-6 7-6s5 2 7 6c-2 4-5 6-7 6s-5-2-7-6z" stroke="var(--gold)" strokeWidth="1.2" fill="none"/>
-                  <circle cx="14" cy="14" r="2" fill="var(--gold)"/>
-                </svg>
-                <div>
-                  <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', lineHeight: 1 }}>Tatafil</p>
-                  <p style={{ fontSize: '0.65rem', color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Admin</p>
-                </div>
-              </Link>
-            </div>
-
-            {/* Nav */}
-            <nav style={{ flex: 1, padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-              {NAV.map(({ href, label, icon }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={() => setSidebarOpen(false)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '0.75rem',
-                    padding: '0.65rem 0.85rem',
-                    borderRadius: 'var(--radius)',
-                    fontSize: '0.85rem', fontWeight: 500,
-                    transition: 'all var(--transition)',
-                    background: isActive(href) ? 'rgba(201,168,124,0.12)' : 'transparent',
-                    color: isActive(href) ? 'var(--gold)' : 'var(--text-muted)',
-                    borderLeft: `2px solid ${isActive(href) ? 'var(--gold)' : 'transparent'}`,
-                  }}
-                >
-                  {icon}
-                  {label}
-                </Link>
-              ))}
-            </nav>
-
-            {/* Footer sidebar */}
-            <div style={{ padding: '1rem 0.75rem', borderTop: '1px solid var(--border)' }}>
-              <div style={{ padding: '0.75rem 0.85rem', marginBottom: '0.5rem' }}>
-                <p style={{ fontSize: '0.8rem', fontWeight: 500 }}>{user?.firstName} {user?.lastName}</p>
-                <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{user?.email}</p>
+        <aside style={{
+          position: 'fixed', top: 0, left: 0, bottom: 0,
+          width: 240,
+          background: 'var(--bg-card)',
+          borderRight: '1px solid var(--border)',
+          display: 'flex',
+          flexDirection: 'column',
+          zIndex: 50,
+          transition: 'transform 250ms ease',
+        }}
+          className={`admin-sidebar${sidebarOpen ? ' open' : ''}`}
+        >
+          {/* Logo */}
+          <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+            <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+              <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
+                <circle cx="14" cy="14" r="13" stroke="var(--gold)" strokeWidth="1.2"/>
+                <path d="M7 14c2-4 5-6 7-6s5 2 7 6c-2 4-5 6-7 6s-5-2-7-6z" stroke="var(--gold)" strokeWidth="1.2" fill="none"/>
+                <circle cx="14" cy="14" r="2" fill="var(--gold)"/>
+              </svg>
+              <div>
+                <p style={{ fontFamily: 'var(--font-display)', fontSize: '1.1rem', lineHeight: 1 }}>Tatafil</p>
+                <p style={{ fontSize: '0.65rem', color: 'var(--gold)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Admin</p>
               </div>
-              <button
-                onClick={() => { logout(); router.push('/') }}
+            </Link>
+          </div>
+
+          {/* Nav */}
+          <nav style={{ flex: 1, padding: '1rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+            {NAV.map(({ href, label, icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setSidebarOpen(false)}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '0.75rem',
-                  width: '100%', padding: '0.65rem 0.85rem',
-                  borderRadius: 'var(--radius)', fontSize: '0.85rem',
-                  color: 'var(--text-muted)', transition: 'color var(--transition)',
+                  padding: '0.65rem 0.85rem',
+                  borderRadius: 'var(--radius)',
+                  fontSize: '0.85rem', fontWeight: 500,
+                  transition: 'all var(--transition)',
+                  background: isActive(href) ? 'rgba(201,168,124,0.12)' : 'transparent',
+                  color: isActive(href) ? 'var(--gold)' : 'var(--text-muted)',
+                  borderLeft: `2px solid ${isActive(href) ? 'var(--gold)' : 'transparent'}`,
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                  <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-                </svg>
-                Déconnexion
-              </button>
-            </div>
-          </aside>
-        </>
+                {icon}
+                {label}
+              </Link>
+            ))}
+          </nav>
 
-        {/* Main content */}
+          {/* Footer sidebar */}
+          <div style={{ padding: '1rem 0.75rem', borderTop: '1px solid var(--border)' }}>
+            <div style={{ padding: '0.75rem 0.85rem', marginBottom: '0.5rem' }}>
+              <p style={{ fontSize: '0.8rem', fontWeight: 500 }}>{user.firstName} {user.lastName}</p>
+              <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{user.email}</p>
+            </div>
+            <button
+              onClick={() => { logout(); router.push('/') }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '0.75rem',
+                width: '100%', padding: '0.65rem 0.85rem',
+                borderRadius: 'var(--radius)', fontSize: '0.85rem',
+                color: 'var(--text-muted)', transition: 'color var(--transition)',
+                background: 'none', border: 'none', cursor: 'pointer',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
+              </svg>
+              Déconnexion
+            </button>
+          </div>
+        </aside>
+
+        {/* Main */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }} className="admin-main">
           {/* Top bar */}
           <header style={{
@@ -188,9 +237,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             position: 'sticky', top: 0, zIndex: 30,
           }}>
             <button
-              className="admin-menu-btn"
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              style={{ color: 'var(--text-muted)', display: 'none' }}
+              className="admin-menu-btn"
+              style={{
+                color: 'var(--text-muted)', background: 'none',
+                border: 'none', cursor: 'pointer', padding: '0.25rem',
+              }}
+              aria-label="Menu"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M3 12h18M3 6h18M3 18h18"/>
@@ -215,24 +268,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <ToastContainer />
 
       <style>{`
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .admin-sidebar { transform: translateX(0); }
+
         @media (max-width: 768px) {
-          .admin-sidebar {
-            transform: translateX(-100%);
-          }
-          .admin-sidebar.open {
-            transform: translateX(0);
-          }
-          .admin-main {
-            margin-left: 0 !important;
-          }
-          .admin-menu-btn {
-            display: flex !important;
-          }
+          .admin-sidebar { transform: translateX(-100%); }
+          .admin-sidebar.open { transform: translateX(0) !important; }
+          .admin-main { margin-left: 0 !important; }
+          .admin-menu-btn { display: flex !important; }
         }
         @media (min-width: 769px) {
-          .admin-main {
-            margin-left: 240px;
-          }
+          .admin-main { margin-left: 240px; }
+          .admin-menu-btn { display: none; }
         }
       `}</style>
     </>

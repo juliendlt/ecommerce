@@ -10,9 +10,14 @@ export function Header() {
   const [cartOpen, setCartOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  // ── Hydratation safe : on lit le store uniquement après montage ──
+  const [mounted, setMounted] = useState(false)
+
   const itemCount = useCartStore((s) => s.itemCount())
-  const { user, logout } = useAuthStore()
+  const { user } = useAuthStore()
   const pathname = usePathname()
+
+  useEffect(() => { setMounted(true) }, [])
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -37,6 +42,7 @@ export function Header() {
         borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
       }}>
         <div className="container" style={{ display: 'flex', alignItems: 'center', height: 68 }}>
+
           {/* Logo */}
           <Link href="/" style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
@@ -50,18 +56,14 @@ export function Header() {
           </Link>
 
           {/* Nav desktop */}
-          <nav style={{ display: 'flex', alignItems: 'center', gap: '2.5rem', marginRight: '2.5rem' }}
-            className="desktop-nav">
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '2.5rem', marginRight: '2.5rem' }} className="desktop-nav">
             {navLinks.map(({ href, label }) => (
               <Link key={href} href={href} style={{
                 fontSize: '0.8rem', fontWeight: 500, letterSpacing: '0.06em',
                 textTransform: 'uppercase',
                 color: pathname === href ? 'var(--gold)' : 'var(--text-muted)',
                 transition: 'color var(--transition)',
-              }}
-                onMouseEnter={e => { if (pathname !== href) e.currentTarget.style.color = 'var(--text)' }}
-                onMouseLeave={e => { if (pathname !== href) e.currentTarget.style.color = 'var(--text-muted)' }}
-              >
+              }}>
                 {label}
               </Link>
             ))}
@@ -69,6 +71,7 @@ export function Header() {
 
           {/* Actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+
             {/* Account */}
             <Link href="/compte" style={{
               display: 'flex', alignItems: 'center', gap: '0.4rem',
@@ -76,15 +79,13 @@ export function Header() {
               fontSize: '0.8rem', fontWeight: 500,
               color: pathname === '/compte' ? 'var(--gold)' : 'var(--text-muted)',
               transition: 'color var(--transition)',
-            }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
-              onMouseLeave={e => e.currentTarget.style.color = pathname === '/compte' ? 'var(--gold)' : 'var(--text-muted)'}
-            >
+            }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z"/>
               </svg>
+              {/* Afficher le prénom seulement après hydratation pour éviter le mismatch */}
               <span className="desktop-nav" style={{ fontSize: '0.8rem' }}>
-                {user ? user.firstName : 'Compte'}
+                {mounted && user ? user.firstName : 'Compte'}
               </span>
             </Link>
 
@@ -95,15 +96,15 @@ export function Header() {
                 position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 40, height: 40, borderRadius: 'var(--radius)',
                 color: 'var(--text-muted)', transition: 'color var(--transition)',
+                background: 'none', border: 'none', cursor: 'pointer',
               }}
-              onMouseEnter={e => e.currentTarget.style.color = 'var(--text)'}
-              onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
               aria-label="Ouvrir le panier"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                 <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4zM3 6h18M16 10a4 4 0 01-8 0"/>
               </svg>
-              {itemCount > 0 && (
+              {/* Badge panier : seulement après hydratation */}
+              {mounted && itemCount > 0 && (
                 <span style={{
                   position: 'absolute', top: 4, right: 4,
                   width: 16, height: 16, borderRadius: '50%',
@@ -116,11 +117,15 @@ export function Header() {
               )}
             </button>
 
-            {/* Mobile menu toggle */}
+            {/* Mobile menu */}
             <button
               onClick={() => setMobileOpen(!mobileOpen)}
               className="mobile-menu-btn"
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, color: 'var(--text-muted)' }}
+              style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                width: 40, height: 40, color: 'var(--text-muted)',
+                background: 'none', border: 'none', cursor: 'pointer',
+              }}
               aria-label="Menu"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -135,10 +140,7 @@ export function Header() {
 
         {/* Mobile nav */}
         {mobileOpen && (
-          <div style={{
-            background: 'var(--bg-card)', borderTop: '1px solid var(--border)',
-            padding: '1rem 1.5rem 1.5rem',
-          }}>
+          <div style={{ background: 'var(--bg-card)', borderTop: '1px solid var(--border)', padding: '1rem 1.5rem 1.5rem' }}>
             {navLinks.map(({ href, label }) => (
               <Link key={href} href={href} style={{
                 display: 'block', padding: '0.75rem 0',
