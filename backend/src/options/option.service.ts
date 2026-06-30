@@ -39,24 +39,34 @@ export async function disableOption(id: string) {
     });
 }
 
-export async function attachOptionToProduct(
+// Lie PLUSIEURS options existantes à un produit en une seule fois, dans
+// UN SEUL groupe (ex: tout le groupe "tissu" du produit). Remplace l'ancienne
+// version qui ne liait qu'une option à la fois.
+export async function attachOptionsToProduct(
     productId: string,
-    optionValueId: string,
     position: number,
+    optionValueIds: string[],
 ) {
     return prisma.productOptionGroup.create({
         data: {
             position,
             product: {
-                connect: {
-                    id: productId,
-                },
+                connect: { id: productId },
             },
             values: {
-                connect: {
-                    id: optionValueId,
-                },
+                connect: optionValueIds.map((id) => ({ id })),
             },
         },
+        include: {
+            values: true,
+        },
+    });
+}
+
+// Supprime un groupe d'options d'un produit. Les OptionValue centrales
+// ne sont PAS supprimées, seulement le lien (le groupe) avec ce produit.
+export async function deleteProductOptionGroup(groupId: string) {
+    return prisma.productOptionGroup.delete({
+        where: { id: groupId },
     });
 }

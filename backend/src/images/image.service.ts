@@ -1,9 +1,6 @@
-import { v2 as cloudinary } from "cloudinary";
+import cloudinary from "../lib/cloudinary";
 import { prisma } from "../lib/prisma";
 import { UpdateImageInput } from "./image.types";
-
-// Cloudinary se configure via les variables d'environnement automatiquement :
-// CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
 
 function uploadToCloudinary(
     buffer: Buffer,
@@ -13,20 +10,38 @@ function uploadToCloudinary(
         const stream = cloudinary.uploader.upload_stream(
             {
                 folder: "tatafil/products",
+
                 resource_type: "image",
-                format: mimetype === "image/webp" ? "webp" : "auto",
+
                 transformation: [
-                    { width: 1200, crop: "limit" }, // jamais plus large que 1200px
-                    { quality: "auto:good" }, // compression automatique
+                    {
+                        width: 1200,
+                        crop: "limit",
+                    },
+
+                    {
+                        quality: "auto",
+                    },
+
+                    {
+                        fetch_format: "auto",
+                    },
                 ],
             },
+
             (error, result) => {
                 if (error || !result) {
                     return reject(error ?? new Error("CLOUDINARY_UPLOAD_FAILED"));
                 }
-                resolve({ url: result.secure_url, publicId: result.public_id });
+
+                resolve({
+                    url: result.secure_url,
+
+                    publicId: result.public_id,
+                });
             },
         );
+
         stream.end(buffer);
     });
 }

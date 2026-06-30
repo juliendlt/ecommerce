@@ -240,6 +240,17 @@ export const adminImagesApi = {
     request<{ message: string }>(`/images/${id}`, { method: 'DELETE' }),
 }
 
+// Admin — Option Groups (lier des options existantes à un produit)
+export const adminOptionGroupsApi = {
+  attach: (productId: string, position: number, optionValueIds: string[]) =>
+    request<ProductOptionGroup>('/options/attach', {
+      method: 'POST',
+      body: JSON.stringify({ productId, position, optionValueIds }),
+    }),
+  delete: (groupId: string) =>
+    request<{ message: string }>(`/options/groups/${groupId}`, { method: 'DELETE' }),
+}
+
 // Admin — Orders
 export const adminOrdersApi = {
   getAll: () => request<AdminOrder[]>('/orders/admin/all'),

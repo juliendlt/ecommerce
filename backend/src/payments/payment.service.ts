@@ -52,14 +52,16 @@ export async function createCheckoutSession(orderId: string) {
                 })),
                 // Frais de livraison (si > 0)
                 ...(Number(order.shippingCost) > 0
-                    ? [{
-                        price_data: {
-                            currency: "eur",
-                            product_data: { name: "Frais de livraison" },
-                            unit_amount: Math.round(Number(order.shippingCost) * 100),
-                        },
-                        quantity: 1,
-                    }]
+                    ? [
+                          {
+                              price_data: {
+                                  currency: "eur",
+                                  product_data: { name: "Frais de livraison" },
+                                  unit_amount: Math.round(Number(order.shippingCost) * 100),
+                              },
+                              quantity: 1,
+                          },
+                      ]
                     : []),
             ],
             // URLs de retour vers les pages dédiées du frontend
