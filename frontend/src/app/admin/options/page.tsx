@@ -9,22 +9,34 @@ import { toast } from '@/components/ui/Toast'
 import { formatPrice } from '@/lib/utils'
 
 const EMPTY_FORM = { label: '', type: '', priceOffSet: '0' }
-
 const COMMON_TYPES = ['tissu', 'finition', 'couleur', 'taille', 'matiere']
 
 export default function AdminOptionsPage() {
-  const [options, setOptions] = useState<OptionValue[]>([])
+  // On maintient TOUTES les options localement (actives + désactivées)
+  // Le backend /options ne retourne que les actives, donc on fusionne :
+  // au chargement on récupère les actives, les désactivées restent dans allOptions
+  // jusqu'à rechargement. Après un toggle on recharge tout.
+  const [allOptions, setAllOptions] = useState<OptionValue[]>([])
   const [loading, setLoading] = useState(true)
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<OptionValue | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
-  const [filterType, setFilterType] = useState<string>('all')
+  const [filterType, setFilterType] = useState('all')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
 
   async function load() {
     setLoading(true)
     try {
-      setOptions(await adminOptionsApi.getAll())
+      // Le backend retourne uniquement les actives
+      // On merge avec ce qu'on a déjà pour conserver les inactives
+      const active = await adminOptionsApi.getAll()
+      setAllOptions(prev => {
+        // Garder les inactives connues + remplacer les actives par la réponse fraîche
+        const inactiveKnown = prev.filter(o => !o.isAvailable)
+        const merged = [...active, ...inactiveKnown.filter(o => !active.find(a => a.id === o.id))]
+        return merged
+      })
     } finally {
       setLoading(false)
     }
@@ -57,14 +69,16 @@ export default function AdminOptionsPage() {
         priceOffSet: parseFloat(form.priceOffSet) || 0,
       }
       if (editing) {
-        await adminOptionsApi.update(editing.id, payload)
+        const updated = await adminOptionsApi.update(editing.id, payload)
+        // Mettre à jour localement
+        setAllOptions(prev => prev.map(o => o.id === editing.id ? { ...o, ...updated } : o))
         toast('Option mise à jour', 'success')
       } else {
-        await adminOptionsApi.create(payload)
+        const created = await adminOptionsApi.create(payload)
+        setAllOptions(prev => [...prev, { ...created, isAvailable: true }])
         toast('Option créée', 'success')
       }
       setModalOpen(false)
-      load()
     } catch (e: any) {
       toast(e.message || 'Erreur', 'error')
     } finally {
@@ -73,73 +87,106 @@ export default function AdminOptionsPage() {
   }
 
   async function handleToggle(opt: OptionValue) {
+    const next = !opt.isAvailable
     try {
-      await adminOptionsApi.update(opt.id, { isAvailable: !opt.isAvailable })
-      toast(opt.isAvailable ? 'Option désactivée' : 'Option activée', 'success')
-      load()
+      // Optimistic update
+      setAllOptions(prev => prev.map(o => o.id === opt.id ? { ...o, isAvailable: next } : o))
+      await adminOptionsApi.update(opt.id, { isAvailable: next })
+      toast(next ? 'Option réactivée' : 'Option désactivée', 'success')
     } catch (e: any) {
+      // Rollback
+      setAllOptions(prev => prev.map(o => o.id === opt.id ? { ...o, isAvailable: opt.isAvailable } : o))
       toast(e.message || 'Erreur', 'error')
     }
   }
 
-  const types = ['all', ...Array.from(new Set(options.map(o => o.type)))]
-  const filtered = filterType === 'all' ? options : options.filter(o => o.type === filterType)
+  // Types disponibles dans les données actuelles
+  const types = ['all', ...Array.from(new Set(allOptions.map(o => o.type))).sort()]
+
+  const filtered = allOptions.filter(o => {
+    const matchType = filterType === 'all' || o.type === filterType
+    const matchStatus =
+      filterStatus === 'all' ? true :
+      filterStatus === 'active' ? o.isAvailable :
+      !o.isAvailable
+    return matchType && matchStatus
+  })
+
+  const activeCount = allOptions.filter(o => o.isAvailable).length
+  const inactiveCount = allOptions.filter(o => !o.isAvailable).length
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+      {/* Header */}
+      <div className="admin-page-header">
         <div>
-          <p className="label" style={{ marginBottom: '0.3rem' }}>Catalogue</p>
-          <h1 className="display-lg" style={{ fontSize: '1.6rem' }}>Options</h1>
+          <p className="admin-section-title">Catalogue</p>
+          <h1 className="admin-page-title">Options</h1>
         </div>
         <button onClick={openCreate} className="btn btn-gold">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
           Nouvelle option
         </button>
       </div>
 
-      {/* Filtre par type */}
-      <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.25rem' }}>
-        {types.map(t => (
+      {/* Compteurs */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+        {[
+          { label: 'Total', count: allOptions.length, status: 'all' as const },
+          { label: 'Actives', count: activeCount, status: 'active' as const },
+          { label: 'Désactivées', count: inactiveCount, status: 'inactive' as const },
+        ].map(({ label, count, status }) => (
           <button
-            key={t}
-            onClick={() => setFilterType(t)}
-            style={{
-              padding: '0.4rem 1rem', fontSize: '0.78rem',
-              borderRadius: 'var(--radius)', border: '1px solid',
-              borderColor: filterType === t ? 'var(--gold)' : 'var(--border)',
-              color: filterType === t ? 'var(--gold)' : 'var(--text-muted)',
-              background: filterType === t ? 'rgba(201,168,124,0.08)' : 'transparent',
-              cursor: 'pointer',
-            }}
+            key={status}
+            onClick={() => setFilterStatus(status)}
+            className={`admin-filter-btn${filterStatus === status ? ' active' : ''}`}
           >
-            {t === 'all' ? 'Tous' : t}
+            {label} <span style={{
+              marginLeft: '0.4rem',
+              padding: '0.1rem 0.45rem',
+              borderRadius: '99px',
+              background: filterStatus === status ? 'var(--gold)' : 'var(--bg-warm)',
+              color: filterStatus === status ? 'var(--text-dark)' : 'var(--text-muted)',
+              fontSize: '0.68rem', fontWeight: 700,
+            }}>{count}</span>
           </button>
         ))}
       </div>
 
+      {/* Filtres par type */}
+      <div className="admin-toolbar">
+        {types.map(t => (
+          <button
+            key={t}
+            onClick={() => setFilterType(t)}
+            className={`admin-filter-btn${filterType === t ? ' active' : ''}`}
+          >
+            {t === 'all' ? 'Tous les types' : t}
+          </button>
+        ))}
+      </div>
+
+      {/* Tableau */}
       <AdminTable
         loading={loading}
         keyExtractor={(o) => o.id}
-        emptyMessage="Aucune option"
+        emptyMessage="Aucune option trouvée"
         data={filtered}
         columns={[
           {
             key: 'label', label: 'Label',
-            render: (o) => <span style={{ fontWeight: 500 }}>{o.label}</span>,
+            render: (o) => (
+              <span style={{ fontWeight: 500, opacity: o.isAvailable ? 1 : 0.5 }}>
+                {o.label}
+              </span>
+            ),
           },
           {
             key: 'type', label: 'Type',
             render: (o) => (
-              <span style={{
-                padding: '0.2rem 0.6rem', borderRadius: 'var(--radius)',
-                fontSize: '0.72rem', fontWeight: 600,
-                background: 'rgba(201,168,124,0.1)',
-                color: 'var(--gold)',
-                textTransform: 'uppercase', letterSpacing: '0.06em',
-              }}>
-                {o.type}
-              </span>
+              <span className="badge badge-gold">{o.type}</span>
             ),
           },
           {
@@ -151,39 +198,28 @@ export default function AdminOptionsPage() {
             ),
           },
           {
-            key: 'isAvailable', label: 'Disponible',
+            key: 'isAvailable', label: 'Statut',
             render: (o) => (
-              <span style={{
-                padding: '0.2rem 0.6rem', borderRadius: 'var(--radius)',
-                fontSize: '0.7rem', fontWeight: 600,
-                background: o.isAvailable ? 'rgba(168,197,160,0.15)' : 'rgba(196,122,106,0.15)',
-                color: o.isAvailable ? '#a8c5a0' : '#c47a6a',
-              }}>
-                {o.isAvailable ? 'Oui' : 'Non'}
+              <span className={`badge ${o.isAvailable ? 'badge-green' : 'badge-red'}`}>
+                {o.isAvailable ? 'Active' : 'Désactivée'}
               </span>
             ),
           },
           {
-            key: 'actions', label: 'Actions', width: '140px',
+            key: 'actions', label: 'Actions', width: '160px',
             render: (o) => (
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div className="actions-row">
                 <button
                   onClick={() => openEdit(o)}
-                  className="btn btn-outline"
-                  style={{ padding: '0.35rem 0.75rem', fontSize: '0.75rem' }}
+                  className="table-action-btn primary"
                 >
                   Éditer
                 </button>
                 <button
                   onClick={() => handleToggle(o)}
-                  style={{
-                    padding: '0.35rem 0.75rem', fontSize: '0.75rem',
-                    borderRadius: 'var(--radius)', border: '1px solid var(--border)',
-                    color: o.isAvailable ? '#c47a6a' : '#a8c5a0',
-                    background: 'transparent', cursor: 'pointer',
-                  }}
+                  className={`table-action-btn ${o.isAvailable ? 'danger' : 'success'}`}
                 >
-                  {o.isAvailable ? 'Désactiver' : 'Activer'}
+                  {o.isAvailable ? 'Désactiver' : 'Réactiver'}
                 </button>
               </div>
             ),
@@ -191,15 +227,17 @@ export default function AdminOptionsPage() {
         ]}
       />
 
-      {/* Modal */}
+      {/* Modal créer/modifier */}
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editing ? `Modifier : ${editing.label}` : 'Nouvelle option'}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
-          <div>
-            <label className="form-label">Label <span style={{ color: 'var(--gold)' }}>*</span></label>
+          <div className="form-group">
+            <label className="form-label">
+              Label <span style={{ color: 'var(--gold)' }}>*</span>
+            </label>
             <input
               className="input-field"
               value={form.label}
@@ -208,20 +246,16 @@ export default function AdminOptionsPage() {
             />
           </div>
 
-          <div>
-            <label className="form-label">Type <span style={{ color: 'var(--gold)' }}>*</span></label>
+          <div className="form-group">
+            <label className="form-label">
+              Type <span style={{ color: 'var(--gold)' }}>*</span>
+            </label>
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '0.5rem' }}>
               {COMMON_TYPES.map(t => (
                 <button
                   key={t}
                   onClick={() => setForm(p => ({ ...p, type: t }))}
-                  style={{
-                    padding: '0.3rem 0.75rem', fontSize: '0.75rem',
-                    borderRadius: 'var(--radius)', border: '1px solid',
-                    borderColor: form.type === t ? 'var(--gold)' : 'var(--border)',
-                    color: form.type === t ? 'var(--gold)' : 'var(--text-muted)',
-                    background: 'transparent', cursor: 'pointer',
-                  }}
+                  className={`option-chip${form.type === t ? ' selected' : ''}`}
                 >
                   {t}
                 </button>
@@ -235,7 +269,7 @@ export default function AdminOptionsPage() {
             />
           </div>
 
-          <div>
+          <div className="form-group">
             <label className="form-label">Surcoût (€)</label>
             <input
               className="input-field"
@@ -246,22 +280,10 @@ export default function AdminOptionsPage() {
               onChange={e => setForm(p => ({ ...p, priceOffSet: e.target.value }))}
               placeholder="0.00"
             />
-            <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
-              Montant ajouté au prix de base du produit si cette option est choisie
+            <p className="form-hint">
+              Montant ajouté au prix de base si cette option est choisie par le client
             </p>
           </div>
-
-          {editing && (
-            <div style={{
-              padding: '0.75rem 1rem',
-              background: 'rgba(201,168,124,0.06)',
-              borderRadius: 'var(--radius)',
-              border: '1px solid var(--border)',
-              fontSize: '0.8rem', color: 'var(--text-muted)',
-            }}>
-              💡 Pour désactiver cette option sur tous les produits, utilisez le bouton "Désactiver" dans le tableau.
-            </div>
-          )}
 
           <div style={{ display: 'flex', gap: '0.75rem', paddingTop: '0.5rem' }}>
             <button onClick={() => setModalOpen(false)} className="btn btn-ghost" style={{ flex: 1 }}>

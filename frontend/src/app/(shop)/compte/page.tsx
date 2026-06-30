@@ -333,7 +333,11 @@ function OrdersTab() {
 
   useEffect(() => {
     ordersApi.getMyOrders()
-      .then(setOrders)
+      .then(all => {
+        // On n'affiche que les commandes confirmées (pas PENDING = pas encore payées)
+        const confirmed = all.filter(o => o.status !== 'PENDING')
+        setOrders(confirmed)
+      })
       .catch(() => toast('Impossible de charger les commandes', 'error'))
       .finally(() => setLoading(false))
   }, [])

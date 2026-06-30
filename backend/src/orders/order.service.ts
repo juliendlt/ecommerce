@@ -1,6 +1,10 @@
 import { prisma } from "../lib/prisma";
 import { CreateOrderInput, UpdateOrderStatusInput } from "./order.types";
 
+// Frais de port : gratuit au-dessus de 50 €, sinon 4.90 €
+const SHIPPING_THRESHOLD = 50;
+const SHIPPING_COST = 4.9;
+
 export async function createOrder(userId: string, data: CreateOrderInput) {
     let subtotal = 0;
     const items = [];
@@ -19,6 +23,11 @@ export async function createOrder(userId: string, data: CreateOrderInput) {
             throw new Error("PRODUCT_NOT_FOUND");
         }
 
+        if (!product.isActive) {
+            throw new Error("PRODUCT_NOT_AVAILABLE");
+        }
+
+        // Recalcul du prix côté serveur — on ne fait jamais confiance au frontend
         let price = Number(product.basePrice);
 
         if (item.optionsSnapshot) {
@@ -35,6 +44,7 @@ export async function createOrder(userId: string, data: CreateOrderInput) {
 
         const total = price * item.quantity;
         subtotal += total;
+
         items.push({
             productId: product.id,
             productName: product.name,
@@ -46,14 +56,18 @@ export async function createOrder(userId: string, data: CreateOrderInput) {
         });
     }
 
+    // Calcul des frais de livraison
+    const shippingCost = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
+    const orderTotal = subtotal + shippingCost;
+
     return prisma.order.create({
         data: {
             user: {
                 connect: { id: userId },
             },
             subtotal,
-            shippingCost: 0,
-            total: subtotal,
+            shippingCost,
+            total: orderTotal,
             ...(data.shipping && {
                 shipAddress: data.shipping.address,
                 shipCity: data.shipping.city,

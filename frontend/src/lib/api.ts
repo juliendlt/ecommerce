@@ -195,6 +195,8 @@ export const adminCategoriesApi = {
 }
 
 // Admin — Options
+// Note: /options backend filtre isAvailable:true — on récupère les actives puis
+// on fusionne avec l'état local pour afficher les désactivées après toggle.
 export const adminOptionsApi = {
   getAll: () => request<OptionValue[]>('/options'),
   create: (data: { label: string; type: string; priceOffSet: number }) =>
@@ -204,6 +206,38 @@ export const adminOptionsApi = {
   }) => request<OptionValue>(`/options/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   disable: (id: string) =>
     request<{ message: string }>(`/options/${id}`, { method: 'DELETE' }),
+}
+
+// Admin — Images (multipart/form-data)
+export const adminImagesApi = {
+  upload: async (data: {
+    file: File; productId: string; alt?: string
+    position: number; optionValueId?: string
+  }): Promise<ProductImage> => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+    const form = new FormData()
+    form.append('image', data.file)
+    form.append('productId', data.productId)
+    form.append('position', String(data.position))
+    if (data.alt) form.append('alt', data.alt)
+    if (data.optionValueId) form.append('optionValueId', data.optionValueId)
+    const res = await fetch(`${BASE_URL}/images`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: form,
+    })
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: 'Erreur upload' }))
+      throw new Error(err.message || 'Erreur upload')
+    }
+    return res.json()
+  },
+  getByProduct: (productId: string) =>
+    request<ProductImage[]>(`/images/product/${productId}`),
+  update: (id: string, data: { alt?: string; position?: number; optionValueId?: string }) =>
+    request<ProductImage>(`/images/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id: string) =>
+    request<{ message: string }>(`/images/${id}`, { method: 'DELETE' }),
 }
 
 // Admin — Orders

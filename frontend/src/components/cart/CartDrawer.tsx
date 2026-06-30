@@ -4,8 +4,6 @@ import { useEffect, useRef } from 'react'
 import { useCartStore, useAuthStore } from '@/lib/store'
 import { formatPrice } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
-import { toast } from '@/components/ui/Toast'
-import { ordersApi, paymentsApi } from '@/lib/api'
 
 interface CartDrawerProps {
   open: boolean
@@ -29,35 +27,15 @@ export function CartDrawer({ open, onClose }: CartDrawerProps) {
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  async function handleCheckout() {
+  function handleCheckout() {
     if (!isAuthenticated()) {
       onClose()
       router.push('/compte?redirect=checkout')
       return
     }
-
-    try {
-      const payload = {
-        items: items.map((item) => ({
-          productId: item.productId,
-          productName: item.productName,
-          productSlug: item.productSlug,
-          quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          optionsSnapshot: Object.fromEntries(
-            Object.entries(item.selectedOptions).map(([, v]) => [v.type, v.label])
-          ),
-        })),
-      }
-
-      const order = await ordersApi.create(payload)
-      const { url } = await paymentsApi.createCheckout(order.id)
-      clearCart()
-      onClose()
-      if (url) window.location.href = url
-    } catch (e: any) {
-      toast(e.message || 'Erreur lors de la commande', 'error')
-    }
+    // Rediriger vers la page de validation commande
+    onClose()
+    router.push('/checkout')
   }
 
   return (
