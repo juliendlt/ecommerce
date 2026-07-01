@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
     createProduct,
     getProducts,
+    getAllProductsAdmin,
     getProduct,
     updateProduct,
     deleteProduct,
@@ -13,6 +14,11 @@ const router = Router();
 
 // public
 router.get("/", getProducts);
+
+// admin — déclarée AVANT "/:slug" pour que "admin/all" ne soit pas
+// interprété comme un slug de produit par Express
+router.get("/admin/all", authMiddleware, adminOnly, getAllProductsAdmin);
+
 router.get("/:slug", getProduct);
 
 // admin

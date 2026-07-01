@@ -43,6 +43,7 @@ export default function AdminProduitsPage() {
   const [options, setOptions] = useState<OptionValue[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all')
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -84,12 +85,20 @@ export default function AdminProduitsPage() {
     }
   }
 
-  const filtered = products.filter(p =>
-    !search ||
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.slug.includes(search.toLowerCase()) ||
-    p.category.name.toLowerCase().includes(search.toLowerCase())
-  )
+  const filtered = products.filter(p => {
+    const matchSearch = !search ||
+      p.name.toLowerCase().includes(search.toLowerCase()) ||
+      p.slug.includes(search.toLowerCase()) ||
+      p.category.name.toLowerCase().includes(search.toLowerCase())
+    const matchStatus =
+      filterStatus === 'all' ? true :
+      filterStatus === 'active' ? p.isActive :
+      !p.isActive
+    return matchSearch && matchStatus
+  })
+
+  const activeCount = products.filter(p => p.isActive).length
+  const inactiveCount = products.filter(p => !p.isActive).length
 
   return (
     <div>
@@ -104,6 +113,30 @@ export default function AdminProduitsPage() {
           </svg>
           Nouveau produit
         </button>
+      </div>
+
+      {/* Compteurs / filtre statut */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+        {[
+          { label: 'Tous', count: products.length, status: 'all' as const },
+          { label: 'Actifs', count: activeCount, status: 'active' as const },
+          { label: 'Désactivés', count: inactiveCount, status: 'inactive' as const },
+        ].map(({ label, count, status }) => (
+          <button
+            key={status}
+            onClick={() => setFilterStatus(status)}
+            className={`admin-filter-btn${filterStatus === status ? ' active' : ''}`}
+          >
+            {label} <span style={{
+              marginLeft: '0.4rem',
+              padding: '0.1rem 0.45rem',
+              borderRadius: '99px',
+              background: filterStatus === status ? 'var(--gold)' : 'var(--bg-warm)',
+              color: filterStatus === status ? 'var(--text-dark)' : 'var(--text-muted)',
+              fontSize: '0.68rem', fontWeight: 700,
+            }}>{count}</span>
+          </button>
+        ))}
       </div>
 
       <div className="admin-toolbar">
@@ -123,7 +156,11 @@ export default function AdminProduitsPage() {
       <AdminTable
         loading={loading}
         keyExtractor={p => p.id}
-        emptyMessage="Aucun produit — créez-en un !"
+        emptyMessage={
+          filterStatus === 'inactive' ? 'Aucun produit désactivé'
+          : filterStatus === 'active' ? 'Aucun produit actif'
+          : 'Aucun produit — créez-en un !'
+        }
         data={filtered}
         columns={[
           {

@@ -403,3 +403,30 @@ input, textarea, select {
   gap: 0.5rem;
   align-items: center;
 }
+
+/* ── Admin layout (sidebar responsive) ──────────────────────── */
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+.admin-sidebar {
+  transform: translateX(0);
+}
+
+@media (max-width: 768px) {
+  .admin-sidebar { transform: translateX(-100%); }
+  .admin-sidebar.open { transform: translateX(0) !important; }
+  .admin-main { margin-left: 0 !important; }
+  .admin-menu-btn { display: flex !important; }
+}
+
+@media (min-width: 769px) {
+  .admin-main { margin-left: 240px; }
+  .admin-menu-btn { display: none; }
+}
+
+.admin-shortcut {
+  transition: border-color var(--transition);
+}
+.admin-shortcut:hover {
+  border-color: var(--border-gold);
+}

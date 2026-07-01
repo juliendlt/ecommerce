@@ -19,6 +19,12 @@ export async function getProducts(req: Request, res: Response) {
     res.json(products);
 }
 
+// Admin uniquement — retourne tous les produits, actifs et désactivés
+export async function getAllProductsAdmin(req: Request, res: Response) {
+    const products = await service.getAllProductsAdmin();
+    res.json(products);
+}
+
 export async function getProduct(req: Request, res: Response) {
     try {
         const product = await service.getProductBySlug(req.params.slug);

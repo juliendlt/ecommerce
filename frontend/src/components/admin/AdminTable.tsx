@@ -86,7 +86,6 @@ export function AdminTable<T>({
           </tbody>
         </table>
       </div>
-      <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }`}</style>
     </div>
   )
 }

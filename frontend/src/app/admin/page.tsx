@@ -103,13 +103,9 @@ export default function AdminDashboard() {
         marginBottom: '2.5rem',
       }}>
         {SHORTCUTS.map(({ href, label, desc }) => (
-          <Link key={href} href={href} className="card" style={{
+          <Link key={href} href={href} className="card admin-shortcut" style={{
             padding: '1.25rem', display: 'block',
-            transition: 'border-color var(--transition)',
-          }}
-            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--border-gold)')}
-            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
-          >
+          }}>
             <p style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.3rem' }}>{label}</p>
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{desc}</p>
           </Link>

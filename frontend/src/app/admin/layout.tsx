@@ -110,7 +110,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           }} />
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Chargement…</p>
         </div>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }
@@ -267,22 +266,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       <ToastContainer />
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        .admin-sidebar { transform: translateX(0); }
-
-        @media (max-width: 768px) {
-          .admin-sidebar { transform: translateX(-100%); }
-          .admin-sidebar.open { transform: translateX(0) !important; }
-          .admin-main { margin-left: 0 !important; }
-          .admin-menu-btn { display: flex !important; }
-        }
-        @media (min-width: 769px) {
-          .admin-main { margin-left: 240px; }
-          .admin-menu-btn { display: none; }
-        }
-      `}</style>
     </>
   )
 }

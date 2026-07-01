@@ -170,7 +170,7 @@ export interface CreateOrderPayload {
 
 // Admin — Products
 export const adminProductsApi = {
-  getAll: () => request<Product[]>('/products'),
+  getAll: () => request<Product[]>('/products/admin/all'),
   create: (data: {
     name: string; slug: string; shortDescription?: string
     description?: string; basePrice: number; categoryId: string

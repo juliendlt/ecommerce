@@ -18,6 +18,7 @@ export async function createProduct(data: CreateProductInput) {
     });
 }
 
+// Route publique boutique — uniquement les produits actifs
 export async function getProducts() {
     return prisma.product.findMany({
         where: {
@@ -31,6 +32,24 @@ export async function getProducts() {
                     values: true,
                 },
             },
+        },
+    });
+}
+
+// Route admin — TOUS les produits, actifs ET désactivés
+export async function getAllProductsAdmin() {
+    return prisma.product.findMany({
+        include: {
+            images: true,
+            category: true,
+            optionGroups: {
+                include: {
+                    values: true,
+                },
+            },
+        },
+        orderBy: {
+            createdAt: "desc",
         },
     });
 }
